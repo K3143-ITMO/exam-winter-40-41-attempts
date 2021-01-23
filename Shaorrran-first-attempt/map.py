@@ -6,7 +6,6 @@ import pathlib
 
 # All of this would have been easier if he had tried to build a FUCKING BRIDGE first!
 import typing as tp
-from os import name
 
 Map = tp.List[tp.List[str]]
 Cell = tp.Tuple[int, int]
