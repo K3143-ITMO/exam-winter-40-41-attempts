@@ -6,6 +6,7 @@ from map import (
     find_dest,
     find_sam,
     generate_neighbors,
+    is_closed,
     load_maze,
     manhattan_distance,
     reconstruct_maze,
@@ -117,9 +118,16 @@ def test_construct_path():
     ]
 
 
+def test_is_closed():
+    closed_list = [Node(None, (1, 2))]
+    node = Node(None, (2, 2))
+    assert is_closed(node, closed_list) == False
+    node = Node(None, (1, 2))
+    assert is_closed(node, closed_list) == True
+
+
 def test_redefine_open_list():
     neighborhood = [Node(None, (5, 4)), Node(None, (4, 3))]
-    print([i.pos for i in neighborhood])
     open_list = [Node(None, (5, 4))]
     closed_list = [Node(None, (5, 2))]
     current = Node(None, (5, 3))
@@ -150,6 +158,16 @@ def test_a_star():
         (2, 4),
         (1, 4),
     ]
+    maze = [
+        ["☒", "☒", "☒", "☒", "☒", "☒", "☒"],
+        ["☒", "☺", ".", "☒", ".", "☼", "☒"],
+        ["☒", "☒", "☒", "☒", ".", "☒", "☒"],
+        ["☒", ".", ".", "☒", ".", ".", "☒"],
+        ["☒", ".", "☒", ".", "☒", ".", "☒"],
+        ["☒", ".", ".", ".", ".", ".", "☒"],
+        ["☒", "☒", "☒", "☒", "☒", "☒", "☒"],
+    ]
+    assert a_star(maze, start, dest) is None
 
 
 def test_fill_path():

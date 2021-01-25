@@ -25,8 +25,11 @@ class Node:
     def __eq__(self, other) -> bool:
         return self.pos == other.pos
 
+    def __hash__(self):
+        return hash(self.pos)
 
-def load_maze(mazefile: pathlib.Path = pathlib.Path("default.map")) -> Maze:
+
+def load_maze(mazefile: pathlib.Path = pathlib.Path("1.map")) -> Maze:
     """
     Load map from a file as a list of lists of strings
     """
@@ -127,6 +130,17 @@ def construct_path(current_node: Node) -> tp.List[Cell]:
     return path[1:-1]  # cut start and end nodes
 
 
+def is_closed(node: Node, closed_list: tp.List[Node]) -> bool:
+    """
+    Check if a node is closed
+    """
+    for closed in closed_list:
+        if node == closed:
+            return True
+
+    return False
+
+
 def redefine_open_list(
     neighborhood: tp.List[Node],
     open_list: tp.List[Node],
@@ -138,9 +152,8 @@ def redefine_open_list(
     Reinitialize open_list of nodes to continue A-star
     """
     for neighbor in neighborhood:
-        for closed in closed_list:
-            if neighbor == closed:
-                continue
+        if is_closed(neighbor, closed_list):
+            continue
 
         # Create heuristic values
         neighbor.g = current.g + 1
@@ -156,7 +169,7 @@ def redefine_open_list(
     return open_list
 
 
-def a_star(maze: Maze, start: Node, end: Node) -> tp.Optional[tp.List[Cell]]:
+def a_star(maze: Maze, start: Cell, end: Cell) -> tp.Optional[tp.List[Cell]]:
     """
     See https://en.wikipedia.org/wiki/A*_search_algorithm for info on the algorithm
     """
@@ -204,11 +217,19 @@ def fill_path(maze: Maze, path: tp.List[Cell]) -> Maze:
     return maze
 
 
-def main():
+def main() -> None:
     maze = load_maze()
-    start = find_sam(maze)
+    sam = find_sam(maze)
+    if not sam:
+        raise ValueError("Incorrectly-formed maze: where is Mr. Bridges?")
     end = find_dest(maze)
-    path = a_star(maze, start, end)
+    if not end:
+        raise ValueError("Incorrectly-formed maze: where should Sam go?")
+
+    path = a_star(maze, sam, end)
+    if not path:
+        print(reconstruct_maze(maze))
+        return
     print(reconstruct_maze(fill_path(maze, path)))
 
 
