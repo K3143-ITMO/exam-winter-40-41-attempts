@@ -23,12 +23,12 @@ def find_sam(map: Map) -> tp.Optional[Cell]:
     return None
 
 
-def find_ways(map: Map, pos: Cell) -> tp.Optional[tp.List[Cell]]:
+def find_ways(map: Map, sam: Cell) -> tp.Optional[tp.List[Cell]]:
     cells = [
-        (pos[0] - 1, pos[1]),
-        (pos[0] + 1, pos[1]),
-        (pos[0], pos[1] - 1),
-        (pos[0], pos[1] + 1),
+        (sam[0] - 1, sam[1]),
+        (sam[0] + 1, sam[1]),
+        (sam[0], sam[1] - 1),
+        (sam[0], sam[1] + 1),
     ]
     passable_pos = [i for i in cells if (map[i[0]][i[1]] == "." or map[i[0]][i[1]] == "☼")]
     return passable_pos
@@ -53,12 +53,17 @@ def mapmaker(map: Map, sam: Cell) -> tp.Optional[Map]:
     map[sam[0]][sam[1]] = "."
     return None
 
-def printer(map):
-    for i in range(len(map)):
-        print("".join(map[i]))
+def printer(map, basic_map, sam):
+    if map:
+        for i in range(len(map)):
+            print("".join(map[i]))
+    else:
+        basic_map[sam[0]][sam[1]] = "☺"
+        for i in range(len(basic_map)):
+            print("".join(basic_map[i]))
 
 if __name__ == "__main__":
     map = load_map()
     sam = find_sam(map)
     result = mapmaker(map, sam)
-    printer(result)
+    printer(result,map,sam)
