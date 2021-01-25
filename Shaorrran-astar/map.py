@@ -147,8 +147,8 @@ def redefine_open_list(
         neighbor.h = manhattan_distance(neighbor, end)
         neighbor.f = neighbor.g + neighbor.h
 
-        for open in open_list:
-            if neighbor == open and neighbor.g > open.g:
+        for open_node in open_list:
+            if neighbor == open_node and neighbor.g > open_node.g:
                 continue
 
         open_list.append(neighbor)
