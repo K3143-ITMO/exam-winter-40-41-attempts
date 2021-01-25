@@ -1,5 +1,5 @@
 """
-Sam Bridges task solution
+Sam Bridges task solution using A-star
 """
 import argparse
 import pathlib
@@ -10,7 +10,11 @@ Cell = tp.Tuple[int, int]
 
 
 class Node:
-    def __init__(self, parent=None, pos = None):
+    """
+    Node class for A-star algo. Stores parent (previous node), position and heuristic values (f, g, h)
+    """
+
+    def __init__(self, parent=None, pos=None):
         self.parent = parent
         self.pos = pos
 
@@ -37,31 +41,128 @@ def load_maze(mazefile: pathlib.Path = pathlib.Path("default.map")) -> Maze:
 
 
 def reconstruct_maze(maze: Maze) -> str:
+    """
+    Convert map as list of lists back to a string
+    """
     return "".join(["".join(i) + "\n" for i in maze])
 
-def find_sam(maze: Maze) -> Cell:
+
+def find_sam(maze: Maze) -> tp.Optional[Cell]:
+    """
+    Find starting position
+    """
     for i, _ in enumerate(maze):
         for j, e in enumerate(maze[i]):
             if e == "☺":
                 return (i, j)
 
-def find_dest(maze: Maze) -> Cell:
+    return None
+
+
+def find_dest(maze: Maze) -> tp.Optional[Cell]:
+    """
+    Find destination position
+    """
     for i, _ in enumerate(maze):
         for j, e in enumerate(maze[i]):
             if e == "☼":
                 return (i, j)
 
+    return None
+
+
+def manhattan_distance(start: Node, end: Node) -> int:
+    """
+    Calculate Manhattan distance (see https://en.wikipedia.org/wiki/Taxicab_geometry)
+    """
+    return abs(start.pos[0] - end.pos[0]) + abs(start.pos[1] - end.pos[1])
+
+
+def generate_neighbors(maze: Maze, current: Node) -> tp.Optional[tp.List[Node]]:
+    """
+    Select passable neighbors in a maze using range-1 Von Neumann neighborhood (see https://en.wikipedia.org/wiki/Von_Neumann_neighborhood)
+    """
+    neighborhood = []
+    for new_pos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:  # Von Neumann neighborhood
+        node_pos = (current.pos[0] + new_pos[0], current.pos[1] + new_pos[1])
+        if (
+            node_pos[0] > (len(maze) - 1)
+            or node_pos[0] < 0
+            or node_pos[1] > (len(maze[len(maze) - 1]) - 1)
+            or node_pos[1] < 0
+        ):
+            continue
+
+        if maze[node_pos[0]][node_pos[1]] == "☒":
+            continue
+
+        neighborhood.append(Node(current, node_pos))
+
+    return neighborhood
+
+
+def select_node(open_list: tp.List[Node]) -> tp.Tuple[int, Node]:
+    """
+    Next node selection function for A-star algo
+    """
+    current_node = open_list[0]
+    current_index = 0
+    for index, item in enumerate(open_list):
+        if item.f < current_node.f:
+            current_node = item
+            current_index = index
+
+    return (current_index, current_node)
+
+
+def construct_path(current_node: Node) -> tp.List[Cell]:
+    """
+    Construct a path as a list of coordinate tuples (excluding start and dest returned by A-star)
+    """
+    path: tp.List[Cell] = []
+    current = current_node
+    while current:
+        path.insert(0, current.pos)
+        current = current.parent
+    return path[1:-1]  # cut start and end nodes
+
+
+def redefine_open_list(
+    neighborhood: tp.List[Node],
+    open_list: tp.List[Node],
+    closed_list: tp.List[Node],
+    current: Node,
+    end: Node,
+) -> tp.List[Node]:
+    """
+    Reinitialize open_list of nodes to continue A-star
+    """
+    for neighbor in neighborhood:
+        for closed in closed_list:
+            if neighbor == closed:
+                continue
+
+        # Create heuristic values
+        neighbor.g = current.g + 1
+        neighbor.h = manhattan_distance(neighbor, end)
+        neighbor.f = neighbor.g + neighbor.h
+
+        for open in open_list:
+            if neighbor == open and neighbor.g > open.g:
+                continue
+
+        open_list.append(neighbor)
+
+    return open_list
+
+
 def a_star(maze: Maze, start: Node, end: Node) -> tp.Optional[tp.List[Cell]]:
     """
-    Returns a list of tuples as a path from the given start to the given end in the given maze
     See https://en.wikipedia.org/wiki/A*_search_algorithm for info on the algorithm
     """
-
     # Init start and end nodes
     start_node = Node(None, start)
-    start_node.f = start_node.g = start_node.h = 0
     end_node = Node(None, end)
-    end_node.f = end_node.g = end_node.h = 0
 
     # Init open and closed lists
     open_list: tp.List[Node] = []
@@ -73,12 +174,7 @@ def a_star(maze: Maze, start: Node, end: Node) -> tp.Optional[tp.List[Cell]]:
     # Main loop
     while len(open_list) > 0:
         # Get current node
-        current_node = open_list[0]
-        current_index = 0
-        for index, item in enumerate(open_list):
-            if item.f < current_node.f:
-                current_node = item
-                current_index = index
+        current_index, current_node = select_node(open_list)
 
         # Pop current off open list, add to closed list
         open_list.pop(current_index)
@@ -86,70 +182,35 @@ def a_star(maze: Maze, start: Node, end: Node) -> tp.Optional[tp.List[Cell]]:
 
         # Exit condition (found dest)
         if current_node == end_node:
-            path = []
-            current = current_node
-            while current:
-                path.append(current.pos)
-                current = current.parent
-            return path[::-1]  # Path should be reversed
+            return construct_path(current_node)
 
-        # Generate children
-        children = []
-        for new_pos in [(0, -1), (0, 1), (-1, 0), (1, 0)]:  # Von Neumann neighborhood
-            # Get node pos
-            node_pos = (current_node.pos[0] + new_pos[0], current_node.pos[1] + new_pos[1])
+        # Create neighborhood
+        neighborhood = generate_neighbors(maze, current_node)
+        if not neighborhood:
+            raise ValueError("No possible path.")
 
-            # Check range
-            if (
-                node_pos[0] > (len(maze) - 1)
-                or node_pos[0] < 0
-                or node_pos[1] > (len(maze[len(maze) - 1]) - 1)
-                or node_pos[1] < 0
-            ):
-                continue
-
-            # Check walkability
-            if maze[node_pos[0]][node_pos[1]] == "☒":
-                continue
-
-            # Create new node and append
-            new_node = Node(current_node, node_pos)
-            children.append(new_node)
-
-        for child in children:
-            # Child closed
-            for closed in closed_list:
-                if child == closed:
-                    continue
-
-            # Create heuristic values
-            child.g = current_node.g + 1
-            child.h = abs(child.pos[0] - end_node.pos[0]) + abs(
-                child.pos[1] - end_node.pos[1]
-            )  # Manhattan distance
-            child.f = child.g + child.h
-
-            # Child open
-            for open in open_list:
-                if child == open and child.g > open.g:
-                    continue
-
-            open_list.append(child)
+        open_list = redefine_open_list(neighborhood, open_list, closed_list, current_node, end_node)
 
     return None
 
+
 def fill_path(maze: Maze, path: tp.List[Cell]) -> Maze:
+    """
+    Fill the path (as a list of coordinate tuples) with Sam symbols
+    """
     for pos in path:
         maze[pos[0]][pos[1]] = "☺"
 
     return maze
 
+
 def main():
     maze = load_maze()
     start = find_sam(maze)
     end = find_dest(maze)
-    path = a_star(maze, start, end)[1:-1] # cut start and end nodes
+    path = a_star(maze, start, end)
     print(reconstruct_maze(fill_path(maze, path)))
+
 
 if __name__ == "__main__":
     main()
