@@ -29,7 +29,7 @@ class Node:
         return hash(self.pos)
 
 
-def load_maze(mazefile: pathlib.Path = pathlib.Path("1.map")) -> Maze:
+def load_maze(mazefile: tp.Union[pathlib.Path, str] = pathlib.Path("1.map")) -> Maze:
     """
     Load map from a file as a list of lists of strings
     """
@@ -218,7 +218,10 @@ def fill_path(maze: Maze, path: tp.List[Cell]) -> Maze:
 
 
 def main() -> None:
-    maze = load_maze()
+    parser = argparse.ArgumentParser(description="Samuel Porter Bridges pathfinding scanner")
+    parser.add_argument("mazefile", help="Path to mazefile", type=str)
+    args = parser.parse_args()
+    maze = load_maze(args.mazefile)
     sam = find_sam(maze)
     if not sam:
         raise ValueError("Incorrectly-formed maze: where is Mr. Bridges?")
