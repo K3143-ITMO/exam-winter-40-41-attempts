@@ -1,4 +1,4 @@
-from map import find_sam, find_sonne, find_ways, load_map, mapmaker
+from map import find_element, find_ways, load_map, find_path
 
 
 def test_load_map():
@@ -13,28 +13,24 @@ def test_load_map():
     ]
 
 
-def test_find_sam():
+def test_find_element():
     map = load_map()
-    assert find_sam(map) == (1, 1)
+    assert find_element(map, "☺") == (1, 1)
+    assert find_element(map, "☼") == (1, 5)
 
 
 def test_find_ways():
     map = load_map()
-    pos = find_sam(map)
-    assert find_ways(map, pos) == [(1, 2)]
+    sam = find_element(map, "☺")
+    assert find_ways(map, sam) == [(1, 2)]
     map[5][2] = "☺"
-    assert find_ways(map, (5, 3)) == [(4, 3), (5, 4)]
+    assert find_ways(map, (5, 3)) == [(5, 4), (4, 3)]
 
 
-def test_find_sonne():
+def test_find_path():
     map = load_map()
-    assert find_sonne(map) == (1, 5)
-
-
-def test_mapmaker():
-    map = load_map()
-    sam = find_sam(map)
-    assert mapmaker(map, sam) == [
+    sam = find_element(map, "☺")
+    assert find_path(map, sam) == [
         ["☒", "☒", "☒", "☒", "☒", "☒", "☒"],
         ["☒", "☺", "☺", "☒", "☺", "☼", "☒"],
         ["☒", "☒", "☺", "☒", "☺", "☒", "☒"],
@@ -43,3 +39,13 @@ def test_mapmaker():
         ["☒", "☺", "☺", "☺", "☺", "☺", "☒"],
         ["☒", "☒", "☒", "☒", "☒", "☒", "☒"],
     ]
+    broken_map = [
+        ["☒", "☒", "☒", "☒", "☒", "☒", "☒"],
+        ["☒", "☺", ".", "☒", ".", "☼", "☒"],
+        ["☒", "☒", "☒", "☒", ".", "☒", "☒"],
+        ["☒", ".", ".", "☒", ".", ".", "☒"],
+        ["☒", ".", "☒", ".", "☒", ".", "☒"],
+        ["☒", ".", ".", ".", ".", ".", "☒"],
+        ["☒", "☒", "☒", "☒", "☒", "☒", "☒"],
+    ]
+    assert find_path(broken_map, sam) == None
